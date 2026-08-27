@@ -1,0 +1,7 @@
+*.csv.gz
+*.gz
+modelo.txt
+prediccion.txt
+ganancias.txt
+kaggle.json
+.ipynb_checkpoints/
