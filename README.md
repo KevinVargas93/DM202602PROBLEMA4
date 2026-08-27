@@ -72,13 +72,35 @@ resultados/    40 carpetas WF*, una por corrida
 analisis/      Tablas consolidadas listas para analizar
 ```
 
-Cada carpeta en `resultados/` contiene:
+Cada carpeta en `resultados/` contiene los 7 archivos que genera el workflow:
 
 | Archivo | Contenido |
 |---|---|
-| `PARAM.yml` | Configuración completa, hiperparámetros elegidos y resultado |
-| `tb_grid_search_01.txt` | Las 60 combinaciones del grid search con su AUC |
-| `impo.txt` | Importancia de variables del modelo final |
+| `PARAM.yml` | Configuración completa, hiperparámetros elegidos y resultado final |
+| `tb_grid_search_01.txt` | Las 60 combinaciones del grid search con su AUC y `num_iterations` |
+| `impo.txt` | Importancia de variables del modelo final (`gain` y `split`) |
+| `modelo.txt` | Modelo LightGBM serializado, cargable con `lgb.load()` |
+| `prediccion.txt` | Probabilidad asignada a cada cliente de 202107, con su clase real |
+| `ganancias.txt` | Curva de ganancia acumulada y suavizada, ordenada por probabilidad |
+| `curva_de_ganancia.pdf` | Gráfico de la curva de ganancia de esa corrida |
+
+Los 40 modelos ocupan unos 75 MB; el repositorio completo pesa alrededor de 200 MB.
+
+### Cargar un modelo entrenado
+
+```r
+library(lightgbm)
+m <- lgb.load("resultados/WF20260801_D_100103/modelo.txt")
+```
+
+### Reconstruir una curva de ganancia
+
+```r
+library(data.table)
+g <- fread("resultados/WF20260801_D_100103/ganancias.txt")
+plot(seq_len(nrow(g)), g$gan_acum, type = "l",
+     xlab = "Envios", ylab = "Ganancia acumulada")
+```
 
 ---
 
@@ -125,19 +147,21 @@ Rscript "/tmp/run_${SEMILLA}.r"
 
 Repetir para las 10 semillas de cada celda. Conviene lanzarlo dentro de `tmux`.
 
+Cada corrida tarda entre 40 y 90 minutos según la celda: la D es la más rápida porque entrena con 17 meses en lugar de 27.
+
 ### Consolidar y analizar
 
 ```bash
 Rscript scripts/consolidar.r
 ```
 
-Genera `consolidado_resumen.csv` (una fila por corrida) y `consolidado_curvas.csv` (curvas de ganancia muestreadas).
+Genera `consolidado_resumen.csv` (una fila por corrida, con hiperparámetros y ganancia) y `consolidado_curvas.csv` (curvas de ganancia muestreadas cada 25 envíos).
 
 ---
 
 ## Referencias sin modelo
 
-Para dimensionar el resultado se calcularon cuatro puntos de comparación sobre el dataset crudo de 202107, sin entrenar ningún modelo.
+Para dimensionar el resultado se calcularon varios puntos de comparación sobre el dataset crudo de 202107, sin entrenar ningún modelo.
 
 | Estrategia | Envíos | Aciertos | Ganancia |
 |---|---|---|---|
@@ -163,6 +187,14 @@ El Experimento 3 captura el **41,2%** de la ganancia máxima teórica.
 **Óptimo en el borde del grid.** En varias corridas el mejor valor cayó en el extremo superior de la grilla (`num_leaves` en 1024–2048, `min_data_in_leaf` en 2048). El óptimo real podría estar más allá del rango explorado. No afecta la comparación porque todas las celdas usan la misma grilla.
 
 **Comparaciones múltiples.** Se corrieron 6 tests de Wilcoxon. Con corrección de Bonferroni el umbral pasa de 0,05 a 0,0083; los tres resultados significativos siguen pasando.
+
+---
+
+## Aviso sobre los datos publicados
+
+Los archivos `prediccion.txt` y `ganancias.txt` incluyen el identificador de cada cliente junto con su clase real en 202107. Se publican para permitir la verificación independiente de las ganancias reportadas.
+
+Derivan del dataset de la materia y no deben usarse fuera de ese contexto académico.
 
 ---
 
