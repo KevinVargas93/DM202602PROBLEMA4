@@ -98,24 +98,32 @@ El archivo es `analistajr_competencia_2026.csv.gz` (~90 MB comprimido, 976.925 f
 
 Ubicalo en `~/datasets/` antes de correr nada.
 
+### Notebooks por celda
+
+| Celda | Notebook | Meses excluidos |
+|---|---|---|
+| A (Baseline) | `z911_WorkFlow_01_junior_julio.ipynb` | ninguno |
+| B (Experimento 1) | `z911_WorkFlow_01_junior_julio-EXP01.ipynb` | 202003–202004 |
+| C (Experimento 2) | `z911_WorkFlow_01_junior_julio-EXP02.ipynb` | 202006 |
+| D (Experimento 3) | `z911_WorkFlow_01_junior_julio-EXP03.ipynb` | 202003–202012 |
+
 ### Correr una celda
 
 ```bash
-jupyter nbconvert --to script "notebooks/NOMBRE_NOTEBOOK.ipynb"
-
+NB="z911_WorkFlow_01_junior_julio-EXP03"   # notebook de la celda
+CELDA="20260801_D"                          # prefijo del experimento
 SEMILLA=100103
-CELDA=A
+
+jupyter nbconvert --to script "notebooks/${NB}.ipynb"
 
 sed "s|PARAM\$semilla_primigenia <-.*|PARAM\$semilla_primigenia <- $SEMILLA|; \
      s|PARAM\$experimento <-.*|PARAM\$experimento <- \"${CELDA}_${SEMILLA}\"|" \
-  "notebooks/NOMBRE_NOTEBOOK.r" > "/tmp/run_${CELDA}_${SEMILLA}.r"
+  "notebooks/${NB}.r" > "/tmp/run_${SEMILLA}.r"
 
-Rscript "/tmp/run_${CELDA}_${SEMILLA}.r"
+Rscript "/tmp/run_${SEMILLA}.r"
 ```
 
-Cada corrida tarda entre 40 y 90 minutos según la celda (D es la más rápida porque entrena con 17 meses en vez de 27).
-
-Conviene lanzarlas dentro de `tmux` para que sobrevivan a una desconexión.
+Repetir para las 10 semillas de cada celda. Conviene lanzarlo dentro de `tmux`.
 
 ### Consolidar y analizar
 
